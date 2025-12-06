@@ -1,19 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { GoogleLogo } from '../assets';
 
-// 구글 아이콘 (SVG) - 외부 라이브러리 없이 가볍게 사용
-const GoogleIcon = () => (
-  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23.52 12.29C23.52 11.43 23.44 10.6 23.3 9.8H12V14.4H18.45C18.18 15.87 17.33 17.14 16.06 18V20.98H19.93C22.19 18.89 23.52 15.82 23.52 12.29Z" fill="#4285F4"/>
-    <path d="M12 24C15.24 24 17.96 22.92 19.93 20.98L16.06 18C15 18.72 13.62 19.14 12 19.14C8.88 19.14 6.23 17.03 5.29 14.19H1.28V17.3C3.25 21.2 7.32 24 12 24Z" fill="#34A853"/>
-    <path d="M5.29 14.19C5.05 13.31 4.92 12.4 4.92 11.5C4.92 10.6 5.05 9.69 5.29 8.81V5.7H1.28C0.46 7.33 0 9.14 0 11.5C0 13.86 0.46 15.67 1.28 17.3L5.29 14.19Z" fill="#FBBC05"/>
-    <path d="M12 3.86C13.76 3.86 15.34 4.47 16.59 5.66L20.01 2.24C17.96 0.32 15.24 0 12 0C7.32 0 3.25 2.8 1.28 6.7L5.29 9.81C6.23 6.97 8.88 3.86 12 3.86Z" fill="#EA4335"/>
-  </svg>
-)
-
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
 
   // 1. 입력값 상태 관리 (State)
@@ -99,47 +88,69 @@ const LoginPage: React.FC = () => {
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <Input 
-          label="이메일" 
-          name="email" // handleChange에서 식별하기 위해 필요
-          type="email" 
-          placeholder="you@example.com" 
-          value={formData.email} // 상태 연결
-          onChange={handleChange} // 핸들러 연결
-          error={errors.email} // 에러 메시지 연결
-        />
-        
-        <Input 
-          label="비밀번호" 
-          name="password"
-          type="password" 
-          placeholder="••••••••" 
-          value={formData.password}
-          onChange={handleChange}
-          error={errors.password}
-        />
+        {/* 이메일 */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            이메일
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="you@example.com"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.email ? 'border-red-500' : 'border-slate-300'
+            }`}
+          />
+          {errors.email && (
+            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+          )}
+        </div>
 
-        <Button type="submit" fullWidth variant="primary">
+        {/* 비밀번호 */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            비밀번호
+          </label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.password ? 'border-red-500' : 'border-slate-300'
+            }`}
+          />
+          {errors.password && (
+            <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
           로그인하기
-        </Button>
+        </button>
       </form>
 
       {/* 구분선과 소셜 로그인 */}
       <div className="my-6 flex items-center">
-        <div className="flex-grow border-t border-slate-200"></div>
+        <div className="grow border-t border-slate-200"></div>
         <span className="mx-4 text-xs text-slate-400">또는</span>
-        <div className="flex-grow border-t border-slate-200"></div>
+        <div className="grow border-t border-slate-200"></div>
       </div>
 
-      <Button 
-        type="button" 
-        fullWidth 
-        variant="outline" 
+      <button
+        type="button"
         onClick={handleGoogleLogin}
+        className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
       >
-        <GoogleIcon />
-        Google로 계속하기
-      </Button>
+        <GoogleLogo className="w-5 h-5" />
+        <span className="text-slate-700">Google로 계속하기</span>
+      </button>
 
       <div className="mt-6 text-center text-sm text-slate-500">
         아직 계정이 없으신가요?{' '}
