@@ -1,6 +1,5 @@
 import React from 'react';
 
-// 버튼이 받을 수 있는 옵션들을 정의합니다 (타입스크립트의 힘!)
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost'; // 버튼 스타일 종류
   fullWidth?: boolean; // 꽉 찬 너비 여부
