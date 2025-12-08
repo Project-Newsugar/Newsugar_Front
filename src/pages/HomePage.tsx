@@ -5,25 +5,23 @@ import {
   useSubmitQuizAnswer,
 } from "../hooks/useNewsQuery";
 import NewsSummaryCard from "../components/home/NewsSummaryCard";
-import CategoryGrid from "../components/home/CategoryGrid";
+// import CategoryGrid from "../components/home/CategoryGrid";
 import QuizCard from "../components/quiz/QuizCard";
 import QuizQuestion from "../components/quiz/QuizQuestion";
 import QuizForm from "../components/quiz/QuizForm";
 import QuizResult from "../components/quiz/QuizResult";
-import { useNavigate } from 'react-router-dom';
-
-const CATEGORIES = ["정치", "경제", "스포츠", "연예", "IT", "선행"];
+// import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
   const { data: newsSummary, isLoading } = useNewsSummary();
   const { data: quiz, isLoading: isQuizLoading } = useTodayQuiz();
   const submitAnswer = useSubmitQuizAnswer();
   const [isSolved, setIsSolved] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const handleCategoryClick = (category: string) => {
-    console.log(`${category} 카테고리 클릭`);
-  };
+  // const handleCategoryClick = (category: string) => {
+  //   console.log(`${category} 카테고리 클릭`);
+  // };
 
   const handleSubmit = async (answer: string) => {
     if (!quiz) return;
