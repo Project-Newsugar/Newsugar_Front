@@ -19,6 +19,13 @@ export default function HomePage() {
   const submitAnswer = useSubmitQuizAnswer();
   const [isSolved, setIsSolved] = useState(false);
 
+  console.log("HomePage Debug:", {
+    newsSummary,
+    isLoading,
+    quiz,
+    isQuizLoading,
+  });
+
   const handleCategoryClick = (category: string) => {
     console.log(`${category} 카테고리 클릭`);
     // TODO: Navigate to category page or show category news
@@ -105,10 +112,10 @@ export default function HomePage() {
         )}
       </QuizCard>
 
-      <CategoryGrid
+      {/* <CategoryGrid
         categories={CATEGORIES}
         onCategoryClick={handleCategoryClick}
-      />
+      /> */}
     </div>
   );
 }
