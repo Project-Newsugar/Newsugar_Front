@@ -7,6 +7,7 @@ import { MainLayout } from './layout/MainLayout';
 import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage';
 import MyPage from './pages/MyPage';
+import NewsDetailPage from './pages/NewsDetailPage';
 
 const router = createBrowserRouter([
   {
@@ -20,7 +21,7 @@ const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
-      // { path: '/news/:newsId', element: <NewsDetailPage /> },
+      { path: '/news/:newsId', element: <NewsDetailPage /> },
       { path: "/", element: <HomePage /> },
       { path: '/mypage', element: <MyPage /> },
       { path: '/category/:categoryName', element: <CategoryPage /> },
