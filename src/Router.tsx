@@ -9,18 +9,17 @@ import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage';
 
 const router = createBrowserRouter([
-{
+  {
     element: <AuthLayout />,
     children: [
-    { path: '/login', element: <LoginPage /> },
-    { path: '/signup', element: <SignupPage /> },
-    { path: '/onboarding', element: <OnboardingBasicPage /> },
+      { path: "/login", element: <LoginPage /> },
+      { path: "/signup", element: <SignupPage /> },
+      { path: "/onboarding", element: <OnboardingBasicPage /> },
     ],
-},
-{
+  },
+  {
     element: <MainLayout />,
     children: [
-      // { path: '/', element: <HomePage /> },
       // { path: '/categories', element: <CategoriesPage /> },
       // { path: '/category/:categoryName', element: <CategoryDetailPage /> },
       // { path: '/news/:newsId', element: <NewsDetailPage /> },
@@ -28,11 +27,11 @@ const router = createBrowserRouter([
       { path: '/alarm', element: <AlarmListPage /> },
       { path: '/category/:categoryName', element: <CategoryPage /> },
     ],
-},
-{
-    path: '*',
+  },
+  {
+    path: "*",
     element: <Navigate to="/" replace />,
-},
+  },
 ]);
 
-export default router
+export default router;
