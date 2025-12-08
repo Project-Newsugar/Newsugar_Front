@@ -6,6 +6,7 @@ import OnboardingBasicPage from './pages/OnboardingBasicPage';
 import { MainLayout } from './layout/MainLayout';
 import AlarmListPage from './pages/AlarmListPage';
 import HomePage from './pages/HomePage';
+import CategoryPage from './pages/CategoryPage';
 
 const router = createBrowserRouter([
 {
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
       // { path: '/news/:newsId', element: <NewsDetailPage /> },
       { path: '/', element: <HomePage /> },
       { path: '/alarm', element: <AlarmListPage /> },
+      { path: '/category/:categoryName', element: <CategoryPage /> },
     ],
 },
 {
