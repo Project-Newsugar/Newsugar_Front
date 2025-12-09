@@ -1,3 +1,5 @@
+import { FaRegStar, FaStar } from "react-icons/fa";
+
 interface CategoryGridProps {
   categories: string[];
   onCategoryClick: (category: string) => void;
@@ -27,9 +29,9 @@ export default function CategoryGrid({
                 e.stopPropagation();
                 onToggleFavorite(category);
               }}
-              className="cursor-pointer text-2xl hover:scale-110 transition-transform"
+              className="cursor-pointer text-xl hover:scale-110 transition-transform text-yellow-400"
             >
-              {favorites.includes(category) ? "⭐" : "☆"}
+              {favorites.includes(category) ? <FaStar /> : <FaRegStar />}
             </span>
             <span>{category}</span>
           </button>

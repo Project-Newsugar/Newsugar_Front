@@ -5,7 +5,6 @@ import { getCategorySlug } from "../utils/getCategorySlug";
 export const Navbar = () => {
   const location = useLocation();
 
-  // 현재 탭 체크 함수
   const isActive = (path: string) => location.pathname === path;
   const currentCategory = location.pathname.split("/")[2]; 
 
@@ -13,7 +12,6 @@ export const Navbar = () => {
     <header className="bg-white/90 backdrop-blur border-b border-gray-200 sticky top-0 z-50">
       <nav className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
 
-        {/* Logo */}
         <Link
           to="/"
           className="text-2xl font-bold text-blue-600 tracking-tight hover:text-blue-700 transition-colors"
@@ -21,10 +19,8 @@ export const Navbar = () => {
           NewSugar
         </Link>
 
-        {/* Left Menu - 홈, 카테고리 */}
         <ul className="flex gap-6 items-center text-lg font-medium text-gray-600 relative">
 
-          {/* ==== 홈 ==== */}
           <li className="relative">
             <Link
               to="/"
@@ -35,13 +31,11 @@ export const Navbar = () => {
               홈
             </Link>
 
-            {/* Active Indicator */}
             {isActive("/") && (
               <div className="absolute left-0 right-0 -bottom-1 h-[2px] bg-blue-600 rounded-full"></div>
             )}
           </li>
 
-          {/* ==== 카테고리 ==== */}
           <li className="relative group">
            <Link
             to="#"
@@ -51,12 +45,10 @@ export const Navbar = () => {
             카테고리
           </Link>
 
-            {/* Active Indicator */}
             {location.pathname.startsWith("/category") && (
               <div className="absolute left-0 right-0 -bottom-1 h-[2px] bg-blue-600 rounded-full"></div>
             )}
 
-            {/* Dropdown */}
             <div
               className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-xl shadow-md border border-gray-100
                          opacity-0 invisible group-hover:opacity-100 group-hover:visible
@@ -88,7 +80,6 @@ export const Navbar = () => {
           </li>
         </ul>
 
-        {/* Right Menu - 마이페이지 프로필 아이콘 */}
         <Link
           to="/myPage"
           className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all object-cover overflow-hidden ${
