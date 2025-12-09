@@ -1,16 +1,20 @@
 import { useState } from 'react';
 
 interface QuizFormProps {
-  onSubmit: (answer: string) => void;
+  onSubmit: (answer: string, resetForm: () => void) => void;
   isSubmitting?: boolean;
 }
 
 export default function QuizForm({ onSubmit, isSubmitting = false }: QuizFormProps) {
   const [answer, setAnswer] = useState('');
 
+  const resetForm = () => {
+    setAnswer('');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(answer.trim());
+    onSubmit(answer.trim(), resetForm);
   };
 
   return (
