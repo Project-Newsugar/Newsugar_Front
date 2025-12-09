@@ -8,19 +8,23 @@ import {
 import { FaAward, FaBell, FaLock } from "react-icons/fa";
 import { useState, type ChangeEvent } from "react";
 import clsx from "clsx";
+import { useNavigate } from "react-router-dom"; // 페이지 이동용
+import Modal from "../components/Modal"; // 공통 모달 import (경로 확인 필요)
 
-// 1. 뱃지 마스터 데이터 (문서 기준 정의)
+// 1. 뱃지 마스터 데이터
 const BADGE_MASTER_LIST = [
   { code: "MORNING", name: "갓생러", icon: "☀️", desc: "05~09시 접속" },
   { code: "DIVER", name: "뉴스 다독가", icon: "📚", desc: "3개 카테고리 섭렵" },
   { code: "PERFECT_SCORE", name: "퀴즈 마스터", icon: "💯", desc: "퀴즈 100점 달성" },
-  { code: "NIGHT_OWL", name: "올빼미", icon: "🦉", desc: "심야 시간 활동" }, // 미구현 예시
+  { code: "NIGHT_OWL", name: "올빼미", icon: "🦉", desc: "심야 시간 활동" },
 ];
 
 type BadgeCode = (typeof BADGE_MASTER_LIST)[number]["code"];
 
 const MyPage = () => {
-  // TODO: 추후 백엔드 API 연동 시 이 부분을 교체합니다.
+  const navigate = useNavigate();
+
+  // 사용자 정보 상태
   const [user, setUser] = useState({
     name: "홍길동",
     nickname: "멋쟁이사자",
@@ -28,26 +32,27 @@ const MyPage = () => {
     phone: "010-1234-5678",
   });
 
+  // 편집 모드 상태
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(user);
 
-  // 2. 통계 데이터 (강사님 제안 반영: 카테고리별 조회수 추가)
+  // 모달 상태 (로그아웃 확인용)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // 통계 데이터
   const stats = {
     totalScore: 120,
     solvedCount: 15,
-    // 단순 문자열 배열 대신 조회수를 포함한 객체로 변경
     favoriteCategories: [
       { name: "경제", count: 42 },
       { name: "IT/과학", count: 28 },
       { name: "스포츠", count: 15 },
     ],
-    readingStyle: "새벽형 스캐너", // 추후 분석 로직으로 도출될 키워드
+    readingStyle: "새벽형 스캐너",
   };
 
-  // 3. 유저가 획득한 뱃지 코드 목록 (API에서 받아올 값)
   const myBadgeCodes: BadgeCode[] = ["MORNING", "PERFECT_SCORE"];
 
-  // 4. 최근 7일 활동 (정답 여부 + 점수 시각화용)
   const weeklyActivity = [
     { day: "월", score: 100, solved: true },
     { day: "화", score: 80, solved: true },
@@ -58,12 +63,13 @@ const MyPage = () => {
     { day: "일", score: 100, solved: true },
   ];
 
-  // 5. 최근 활동 내역
   const recentActivity = [
     { date: "2024.12.08", quiz: "경제 뉴스 퀴즈", result: "정답" },
     { date: "2024.12.07", quiz: "정치 뉴스 퀴즈", result: "정답" },
     { date: "2024.12.06", quiz: "IT 뉴스 퀴즈", result: "오답" },
   ];
+
+  // --- 핸들러 함수들 ---
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -81,7 +87,6 @@ const MyPage = () => {
     setEditForm(user);
   };
 
-  // React.ChangeEvent 타입을 사용하여 타입 에러 방지
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditForm((prev) => ({
@@ -90,9 +95,19 @@ const MyPage = () => {
     }));
   };
 
-  const handleLogout = () => {
-    alert("로그아웃 되었습니다. (임시)");
-    // TODO: 로그아웃 처리 후 로그인 페이지로 이동
+  // 1. 로그아웃 버튼 클릭 시 모달 열기
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  // 2. 모달에서 '예' 클릭 시 실행될 실제 로그아웃 로직
+  const handleConfirmLogout = () => {
+    console.log("로그아웃 처리됨");
+    // TODO: 토큰 삭제 등 로그아웃 처리 로직 추가
+    
+    // 모달 닫고 로그인 페이지로 이동
+    setShowLogoutModal(false);
+    navigate("/login"); 
   };
 
   return (
@@ -102,7 +117,7 @@ const MyPage = () => {
         <h2 className="text-lg font-bold text-gray-900 mb-4">프로필</h2>
         <div className="bg-white border-l-4 border-blue-600 rounded p-6 shadow-sm">
           {isEditing ? (
-            // 편집 모드
+            // 편집 모드 UI (생략 없이 유지)
             <div>
               <div className="space-y-4 mb-6">
                 <div>
@@ -146,26 +161,17 @@ const MyPage = () => {
                   />
                 </div>
               </div>
-
               <div className="flex gap-3">
-                <button
-                  onClick={handleSave}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium text-sm"
-                >
-                  <MdCheck size={18} />
-                  저장
+                <button onClick={handleSave} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium text-sm">
+                  <MdCheck size={18} /> 저장
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium text-sm"
-                >
-                  <MdClose size={18} />
-                  취소
+                <button onClick={handleCancel} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium text-sm">
+                  <MdClose size={18} /> 취소
                 </button>
               </div>
             </div>
           ) : (
-            // 조회 모드
+            // 조회 모드 UI
             <div>
               <div className="flex items-start justify-between">
                 <div>
@@ -174,15 +180,10 @@ const MyPage = () => {
                   <p className="text-gray-500 text-xs mt-1">{user.email}</p>
                   <p className="text-gray-500 text-xs mt-1">{user.phone}</p>
                 </div>
-                <button
-                  onClick={handleEditClick}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-                >
+                <button onClick={handleEditClick} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
                   <MdEdit size={20} />
                 </button>
               </div>
-
-              {/* 읽기 성향 및 선호 카테고리 태그 */}
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <p className="text-xs text-gray-400 mb-2">나의 읽기 성향</p>
                 <div className="flex flex-wrap gap-2">
@@ -190,14 +191,8 @@ const MyPage = () => {
                     #{stats.readingStyle}
                   </span>
                   {stats.favoriteCategories.map((cat) => (
-                    <span
-                      key={cat.name}
-                      className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-xs border border-gray-200"
-                    >
-                      #{cat.name}{" "}
-                      <span className="text-gray-400 text-[10px] ml-1">
-                        ({cat.count}회)
-                      </span>
+                    <span key={cat.name} className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-xs border border-gray-200">
+                      #{cat.name} <span className="text-gray-400 text-[10px] ml-1">({cat.count}회)</span>
                     </span>
                   ))}
                 </div>
@@ -211,30 +206,21 @@ const MyPage = () => {
       <section className="mb-12">
         <h2 className="text-lg font-bold text-gray-900 mb-4">학습 리포트</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 2-1. 점수 + 7일 그래프 카드 */}
+          {/* 점수 + 그래프 카드 */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MdOutlineTrendingUp className="text-blue-600" size={20} />
-                <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                  퀴즈 진행 상황
-                </span>
+                <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">퀴즈 진행 상황</span>
               </div>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-bold text-gray-900">
-                  {stats.totalScore}
-                </span>
+                <span className="text-3xl font-bold text-gray-900">{stats.totalScore}</span>
                 <span className="text-xs text-gray-500">점 (누적)</span>
               </div>
               <p className="text-gray-500 text-xs mt-1">
-                총 해결한 퀴즈:{" "}
-                <span className="font-semibold text-gray-900">
-                  {stats.solvedCount}개
-                </span>
+                총 해결한 퀴즈: <span className="font-semibold text-gray-900">{stats.solvedCount}개</span>
               </p>
             </div>
-
-            {/* 7일 막대 그래프 */}
             <div className="mt-6">
               <p className="text-gray-400 text-[10px] mb-2 text-right">최근 7일 정답률</p>
               <div className="flex justify-between items-end h-24 border-b border-gray-100 pb-1">
@@ -257,7 +243,7 @@ const MyPage = () => {
             </div>
           </div>
 
-          {/* 2-2. 뱃지 컬렉션 카드 */}
+          {/* 뱃지 카드 */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <span className="text-gray-900 font-bold text-sm">보유 뱃지</span>
@@ -265,45 +251,17 @@ const MyPage = () => {
                 {myBadgeCodes.length} / {BADGE_MASTER_LIST.length}
               </span>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               {BADGE_MASTER_LIST.map((badge) => {
                 const isAcquired = myBadgeCodes.includes(badge.code);
-
                 return (
-                  <div
-                    key={badge.code}
-                    className={clsx(
-                      "flex items-center gap-3 p-3 rounded-xl border transition-all",
-                      isAcquired
-                        ? "bg-white border-blue-100 shadow-sm"
-                        : "bg-gray-50 border-dashed border-gray-200 opacity-60"
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        "w-10 h-10 flex items-center justify-center rounded-full text-xl shrink-0",
-                        isAcquired ? "bg-blue-50" : "bg-gray-100"
-                      )}
-                    >
-                      {isAcquired ? (
-                        badge.icon
-                      ) : (
-                        <FaLock size={14} className="text-gray-400" />
-                      )}
+                  <div key={badge.code} className={clsx("flex items-center gap-3 p-3 rounded-xl border transition-all", isAcquired ? "bg-white border-blue-100 shadow-sm" : "bg-gray-50 border-dashed border-gray-200 opacity-60")}>
+                    <div className={clsx("w-10 h-10 flex items-center justify-center rounded-full text-xl shrink-0", isAcquired ? "bg-blue-50" : "bg-gray-100")}>
+                      {isAcquired ? badge.icon : <FaLock size={14} className="text-gray-400" />}
                     </div>
                     <div className="min-w-0">
-                      <p
-                        className={clsx(
-                          "text-sm font-bold truncate",
-                          isAcquired ? "text-gray-900" : "text-gray-500"
-                        )}
-                      >
-                        {badge.name}
-                      </p>
-                      <p className="text-[10px] text-gray-400 leading-tight mt-0.5 truncate">
-                        {badge.desc}
-                      </p>
+                      <p className={clsx("text-sm font-bold truncate", isAcquired ? "text-gray-900" : "text-gray-500")}>{badge.name}</p>
+                      <p className="text-[10px] text-gray-400 leading-tight mt-0.5 truncate">{badge.desc}</p>
                     </div>
                   </div>
                 );
@@ -313,34 +271,20 @@ const MyPage = () => {
         </div>
       </section>
 
-      {/* 3. 최근 활동 섹션 */}
+      {/* 3. 최근 활동 섹션 (기존 유지) */}
       <section className="mb-12">
         <h2 className="text-lg font-bold text-gray-900 mb-4">최근 활동</h2>
         <div className="space-y-3">
           {recentActivity.length > 0 ? (
             recentActivity.map((activity, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-blue-400 transition-colors cursor-pointer"
-              >
+              <div key={idx} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-blue-400 transition-colors cursor-pointer">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">
-                    {activity.quiz}
-                  </h4>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{activity.quiz}</h4>
                   <div className="flex gap-2 text-xs text-gray-500">
-                    <span>{activity.date}</span>
-                    <span>·</span>
-                    <span>퀴즈 참여</span>
+                    <span>{activity.date}</span><span>·</span><span>퀴즈 참여</span>
                   </div>
                 </div>
-                <span
-                  className={clsx(
-                    "text-xs font-bold px-3 py-1.5 rounded-full",
-                    activity.result === "정답"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  )}
-                >
+                <span className={clsx("text-xs font-bold px-3 py-1.5 rounded-full", activity.result === "정답" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
                   {activity.result}
                 </span>
               </div>
@@ -360,24 +304,32 @@ const MyPage = () => {
             <FaBell size={20} className="text-gray-600" />
             <span className="text-gray-900 font-medium">알림 설정</span>
           </div>
-          <svg
-            className="w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
         <button
-          onClick={handleLogout}
+          onClick={handleLogoutClick} // 👈 수정됨: alert 대신 모달 열기 핸들러 연결
           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white text-red-600 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-200 transition-all font-medium mt-6"
         >
           <MdLogout size={20} />
           <span>로그아웃</span>
         </button>
       </section>
+
+      {/* 👇 공통 모달 추가 */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        type="confirm"
+        title="로그아웃"
+        content="정말 로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        cancelText="취소"
+        onConfirm={handleConfirmLogout} // 실제 로그아웃 로직 실행
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   );
 };
