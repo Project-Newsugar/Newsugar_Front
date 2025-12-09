@@ -40,7 +40,7 @@ export default function HomePage() {
     );
   };
 
-  const handleSubmit = async (answer: string) => {
+  const handleSubmit = async (answer: string, resetForm: () => void) => {
     if (!quiz) return;
     try {
       const result = await submitAnswer.mutateAsync({
@@ -53,6 +53,7 @@ export default function HomePage() {
         setIsSolved(true);
       } else {
         alert("틀렸습니다. 다시 시도해보세요!");
+        resetForm();
       }
     } catch (error) {
       console.error("Failed to submit answer:", error);
@@ -167,7 +168,7 @@ export default function HomePage() {
           </section>
 
           {/* CATEGORY GRID */}
-          <section className="pb-12">
+          <section className="mt-12 pb-12">
             <CategoryGrid
               categories={CATEGORIES}
               onCategoryClick={handleCategoryClick}
