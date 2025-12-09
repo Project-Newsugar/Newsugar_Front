@@ -105,6 +105,7 @@ const MyPage = () => {
     console.log("로그아웃 처리됨");
     // TODO: 토큰 삭제 등 로그아웃 처리 로직 추가
     
+
     // 모달 닫고 홈페이지로 이동
     setShowLogoutModal(false);
     navigate("/"); 
