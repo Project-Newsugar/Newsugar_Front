@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { newsApi } from '../api/newsApi';
-import type { QuizSubmission } from '../types/news';
+import type { QuizSubmission } from '../types/quiz';
 
 export const useNewsSummary = (time?: string) => {
   return useQuery({
