@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface NewsSummaryCardProps {
   summary: string;
   isLoading?: boolean;
   quizSection?: React.ReactNode;
   onTimeChange?: (time: string) => void;
+  selectedTime?: string;
 }
 
 export default function NewsSummaryCard({
@@ -12,11 +13,19 @@ export default function NewsSummaryCard({
   isLoading = false,
   quizSection,
   onTimeChange,
+  selectedTime: initialSelectedTime,
 }: NewsSummaryCardProps) {
-  const [selectedTime, setSelectedTime] = useState<string>("06");
+  const [selectedTime, setSelectedTime] = useState<string>(initialSelectedTime || "06");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const timeOptions = ["06", "12", "18", "24"];
+
+  // 부모 컴포넌트에서 selectedTime이 변경되면 동기화
+  useEffect(() => {
+    if (initialSelectedTime) {
+      setSelectedTime(initialSelectedTime);
+    }
+  }, [initialSelectedTime]);
 
   // 현재 시간 기준으로 생성 가능한 시간대인지 확인
   const isTimeAvailable = (time: string): boolean => {

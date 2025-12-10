@@ -22,13 +22,16 @@ export default function HomePage() {
   // 현재 시간대 계산 함수
   const getCurrentTimeSlot = (): string => {
     const hour = new Date().getHours();
-    if (hour >= 0 && hour < 6) return "00";
+    if (hour >= 0 && hour < 6) return "24"; // 자정~오전6시는 전날 24시
     if (hour >= 6 && hour < 12) return "06";
     if (hour >= 12 && hour < 18) return "12";
     return "18";
   };
 
-  const [selectedTime, setSelectedTime] = useState<string>("06");
+  // 초기값을 현재 시간대로 설정
+  const [selectedTime, setSelectedTime] = useState<string>(
+    getCurrentTimeSlot()
+  );
   const { data: newsSummary, isLoading } = useNewsSummary(selectedTime);
   const { data: quiz, isLoading: isQuizLoading } = useTodayQuiz(selectedTime);
   const submitAnswer = useSubmitQuizAnswer();
@@ -167,6 +170,7 @@ export default function HomePage() {
           summary={newsSummary?.summary || ""}
           isLoading={isLoading}
           onTimeChange={handleTimeChange}
+          selectedTime={selectedTime}
           quizSection={
             <>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Quiz</h3>
@@ -269,7 +273,6 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
     </div>
   );
 }
