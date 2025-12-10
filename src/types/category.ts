@@ -1,0 +1,39 @@
+// 공통 API Response 타입
+export interface ApiResponse<T> {
+  success: boolean;
+  code: string;
+  message: string | null;
+  data: T;
+  timestamp: string;
+}
+
+// 뉴스 카테고리 타입 (백엔드 명세 기준)
+export type NewsCategory = "politics" | "economy" | "society" | "it" | "sports";
+
+// 카테고리 한글 매핑
+export const CATEGORY_LABELS: Record<NewsCategory, string> = {
+  politics: "정치",
+  economy: "경제",
+  society: "사회",
+  it: "IT",
+  sports: "스포츠",
+};
+
+// 카테고리 추가 Request
+export interface AddCategoryRequest {
+  categoryId: number;
+}
+
+// 카테고리 데이터
+export interface UserCategory {
+  id: number;
+  userId: number;
+  categoryId: number;
+  name: string;
+}
+
+// 카테고리 추가 Response
+export type AddCategoryResponse = ApiResponse<UserCategory>;
+
+// 카테고리 삭제 Response
+export type DeleteCategoryResponse = ApiResponse<string>;
