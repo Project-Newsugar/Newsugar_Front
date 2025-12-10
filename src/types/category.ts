@@ -7,16 +7,17 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
-// 뉴스 카테고리 타입 (백엔드 명세 기준)
-export type NewsCategory = "politics" | "economy" | "society" | "it" | "sports";
+// 뉴스 카테고리 타입 (getCategorySlug에 맞춤)
+export type NewsCategory = "politics" | "economy" | "science-tech" | "sports" | "culture" | "international";
 
 // 카테고리 한글 매핑
 export const CATEGORY_LABELS: Record<NewsCategory, string> = {
   politics: "정치",
   economy: "경제",
-  society: "사회",
-  it: "IT",
+  "science-tech": "과학/기술",
   sports: "스포츠",
+  culture: "문화",
+  international: "국제",
 };
 
 // 카테고리 추가 Request

@@ -15,6 +15,7 @@ import { CATEGORIES } from "../constants/CategoryData";
 import { getCategorySlug } from "../utils/getCategorySlug";
 import { useAtom } from "jotai";
 import { favoriteCategoriesAtom } from "../store/atoms";
+import { useAddCategory, useDeleteCategory } from "../hooks/useCategoryQuery";
 
 // 1. 뱃지 마스터 데이터
 const BADGE_MASTER_LIST = [
@@ -30,6 +31,18 @@ const BADGE_MASTER_LIST = [
 ];
 
 type BadgeCode = (typeof BADGE_MASTER_LIST)[number]["code"];
+
+// 카테고리 한글명 -> ID 매핑 (백엔드 DB 기준)
+// ⚠️ 주의: 이 ID는 백엔드 DB의 실제 카테고리 ID와 일치해야 합니다
+// 백엔드 API 응답을 확인하여 정확한 ID를 설정하세요
+const CATEGORY_ID_MAP: Record<string, number> = {
+  "정치": 1,
+  "경제": 2,
+  "과학/기술": 3,
+  "스포츠": 4,
+  "문화": 5,
+  "국제": 6,
+};
 
 const MyPage = () => {
   const navigate = useNavigate();
@@ -51,6 +64,10 @@ const MyPage = () => {
 
   // 즐겨찾기 전역 상태
   const [favorites, setFavorites] = useAtom(favoriteCategoriesAtom);
+
+  // 카테고리 API 훅
+  const addCategoryMutation = useAddCategory();
+  const deleteCategoryMutation = useDeleteCategory();
 
   // 통계 데이터
   const stats = {
@@ -130,12 +147,32 @@ const MyPage = () => {
   };
 
   // 즐겨찾기 토글 핸들러
-  const handleToggleFavorite = (category: string) => {
-    setFavorites((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
+  const handleToggleFavorite = async (category: string) => {
+    const categoryId = CATEGORY_ID_MAP[category];
+
+    if (!categoryId) {
+      console.error("Invalid category:", category);
+      return;
+    }
+
+    // 현재 즐겨찾기에 있는지 확인
+    const existingCategory = favorites.find((fav) => fav.name === category);
+
+    try {
+      if (existingCategory) {
+        // 이미 즐겨찾기에 있으면 삭제
+        await deleteCategoryMutation.mutateAsync(categoryId);
+        setFavorites((prev) => prev.filter((c) => c.name !== category));
+      } else {
+        // 없으면 추가
+        const response = await addCategoryMutation.mutateAsync(categoryId);
+        // response.data는 UserCategory 타입입니다
+        setFavorites((prev) => [...prev, response.data]);
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+      alert("즐겨찾기 설정에 실패했습니다.");
+    }
   };
 
   return (
@@ -367,7 +404,7 @@ const MyPage = () => {
       {/* 3. 즐겨찾기 설정 섹션 */}
       <section className="mb-12">
         <CategoryGrid
-          categories={CATEGORIES}
+          categories={[...CATEGORIES]}
           onCategoryClick={handleCategoryClick}
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}

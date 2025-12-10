@@ -2,12 +2,13 @@
 export type CategoryType =
   | "politics"
   | "economy"
-  | "society"
-  | "it"
-  | "sports";
+  | "science-tech"
+  | "sports"
+  | "culture"
+  | "international";
 
-// 단일 뉴스 아이템 (명세서 기준)
-export interface NewsItem {
+// 뉴스 아이템 (백엔드 API 명세 기준)
+export interface News {
   id: number;
   title: string;
   summary: string;
@@ -16,9 +17,23 @@ export interface NewsItem {
   publishedAt: string;
 }
 
+// 로컬 더미 데이터용 타입 (향후 제거 예정)
+export interface LocalNewsItem {
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+  source: string;
+  author?: string;
+  imageUrl?: string;
+  summary?: string;
+  tags?: string;
+  originalUrl?: string;
+}
+
 // 뉴스 전체 조회 Response (페이지네이션)
 export interface NewsListResponse {
-  content: NewsItem[];
+  content: News[];
   page: number;
   size: number;
   totalElements: number;
@@ -42,10 +57,4 @@ export interface CreateNewsResponse {
 // URL 중복 확인 Response
 export interface NewsExistsResponse {
   exists: boolean;
-}
-
-// 뉴스 요약 (기존 기능용 - 유지)
-export interface NewsSummary {
-  summary: string;
-  date: string;
 }
