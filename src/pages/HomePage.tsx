@@ -19,10 +19,11 @@ import { FaStar } from "react-icons/fa";
 import type { NewsItem } from "../types/news";
 
 export default function HomePage() {
-  // 현재 시간대 계산 함수
+  // 현재 시간대 계산 함수 (오전 6시 기준으로 하루가 시작됨)
   const getCurrentTimeSlot = (): string => {
     const hour = new Date().getHours();
-    if (hour >= 0 && hour < 6) return "24"; // 자정~오전6시는 전날 24시
+    // 오전 0~6시: 전날 24시 카드가 가장 최신
+    if (hour >= 0 && hour < 6) return "24";
     if (hour >= 6 && hour < 12) return "06";
     if (hour >= 12 && hour < 18) return "12";
     return "18";
