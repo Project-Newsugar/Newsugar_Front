@@ -1,9 +1,19 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CATEGORIES } from "../constants/CategoryData";
 import { getCategorySlug } from "../utils/getCategorySlug";
+// [추가] localStorage 유틸과 키 import
+import { getLocalStorage } from "../utils/getLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/keys";
 
 export const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // [추가] 토큰 확인 함수
+  const checkAuth = () => {
+    const accessToken = getLocalStorage(LOCAL_STORAGE_KEY.accessToken).getItem();
+    return !!accessToken;
+  };
 
   const isActive = (path: string) => location.pathname === path;
   const currentCategory = location.pathname.split("/")[2];
@@ -98,7 +108,8 @@ export const Navbar = () => {
           </li>
         </ul>
 
-        <Link
+        {/* [기존] */}
+        {/* <Link
           to="/myPage"
           className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all object-cover overflow-hidden ${
             isActive("/myPage")
@@ -108,7 +119,27 @@ export const Navbar = () => {
           title="마이페이지"
         >
           <img src="src/assets/noProfile.png" alt="noProfile" />
-        </Link>
+        </Link> */}
+
+        {/* [수정] 토큰 확인 후 마이페이지 또는 로그인 페이지로 이동 */}
+        <button
+          onClick={() => {
+            if (checkAuth()) {
+              navigate("/myPage");
+            } else {
+              // alert 제거 - 바로 로그인 페이지로 이동
+              navigate("/login");
+            }
+          }}
+          className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all object-cover overflow-hidden ${
+            isActive("/myPage")
+              ? "border-blue-600 bg-blue-50"
+              : "border-gray-300 hover:border-blue-600 bg-gray-100"
+          }`}
+          title="마이페이지"
+        >
+          <img src="src/assets/noProfile.png" alt="noProfile" />
+        </button>
       </nav>
     </header>
   );

@@ -6,10 +6,13 @@ import {
   MdCheck,
 } from "react-icons/md";
 import { FaBell, FaLock } from "react-icons/fa";
-import { useState, type ChangeEvent, useEffect } from "react";
+import { useState, useMemo, type ChangeEvent, useEffect } from "react";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom"; // 페이지 이동용
 import Modal from "../components/Modal"; // 공통 모달
+// [추가] localStorage 유틸과 키 import
+import { getLocalStorage } from "../utils/getLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/keys";
 import CategoryGrid from "../components/home/CategoryGrid";
 import { CATEGORIES } from "../constants/CategoryData";
 import { getCategorySlug } from "../utils/getCategorySlug";
@@ -17,6 +20,7 @@ import { useAtom } from "jotai";
 import { favoriteCategoriesAtom } from "../store/atoms";
 import { useAddCategory, useDeleteCategory } from "../hooks/useCategoryQuery";
 import { updateUserProfile, getMyProfile } from "../api/auth";
+import { useQuizResult } from "../hooks/useNewsQuery";
 
 // 1. 뱃지 마스터 데이터
 const BADGE_MASTER_LIST = [
@@ -37,16 +41,27 @@ type BadgeCode = (typeof BADGE_MASTER_LIST)[number]["code"];
 // ⚠️ 주의: 이 ID는 백엔드 DB의 실제 카테고리 ID와 일치해야 합니다
 // 백엔드 API 응답을 확인하여 정확한 ID를 설정하세요
 const CATEGORY_ID_MAP: Record<string, number> = {
-  "정치": 1,
-  "경제": 2,
+  정치: 1,
+  경제: 2,
   "과학/기술": 3,
-  "스포츠": 4,
-  "문화": 5,
-  "국제": 6,
+  스포츠: 4,
+  문화: 5,
+  국제: 6,
 };
 
 const MyPage = () => {
   const navigate = useNavigate();
+
+  // [추가] 컴포넌트 마운트 시 토큰 확인
+  useEffect(() => {
+    const accessToken = getLocalStorage(
+      LOCAL_STORAGE_KEY.accessToken
+    ).getItem();
+    if (!accessToken) {
+      // alert 제거 - 바로 로그인 페이지로 리다이렉트
+      navigate("/login");
+    }
+  }, [navigate]);
 
   // 사용자 정보 상태
   const [user, setUser] = useState({
@@ -73,7 +88,7 @@ const MyPage = () => {
         console.error("유저 정보 불러오기 실패:", error);
         // 에러 처리 - 인증 오류 시 로그인 페이지로 리다이렉트
         if (error.response?.status === 401) {
-          alert("로그인이 필요합니다.");
+          // alert 제거 - 바로 로그인 페이지로 리다이렉트
           navigate("/login");
         }
       }
@@ -99,35 +114,96 @@ const MyPage = () => {
   const addCategoryMutation = useAddCategory();
   const deleteCategoryMutation = useDeleteCategory();
 
-  // 통계 데이터
-  const stats = {
-    totalScore: 120,
-    solvedCount: 15,
-    favoriteCategories: [
-      { name: "경제", count: 42 },
-      { name: "IT/과학", count: 28 },
-      { name: "스포츠", count: 15 },
-    ],
-    readingStyle: "새벽형 스캐너",
-  };
+  // 퀴즈 결과 조회 (임의의 quizId 1 사용 - 실제로는 사용자 통계를 반환)
+  const { data: quizResultData } = useQuizResult(1);
 
-  const myBadgeCodes: BadgeCode[] = ["MORNING", "PERFECT_SCORE"];
+  // 통계 데이터 - API에서 가져온 실제 데이터 사용
+  const stats = useMemo(() => {
+    const quizStats = quizResultData?.data;
 
-  const weeklyActivity = [
-    { day: "월", score: 100, solved: true },
-    { day: "화", score: 80, solved: true },
-    { day: "수", score: 0, solved: false },
-    { day: "목", score: 100, solved: true },
-    { day: "금", score: 40, solved: true },
-    { day: "토", score: 0, solved: false },
-    { day: "일", score: 100, solved: true },
-  ];
+    return {
+      totalScore: quizStats?.correct ? quizStats.correct * 100 : 0, // 맞춘 퀴즈당 100점
+      solvedCount: quizStats?.total || 0,
+      correctCount: quizStats?.correct || 0,
+      favoriteCategories: [
+        { name: "경제", count: 42 },
+        { name: "IT/과학", count: 28 },
+        { name: "스포츠", count: 15 },
+      ],
+      readingStyle: "새벽형 스캐너",
+    };
+  }, [quizResultData]);
 
-  const recentActivity = [
-    { date: "2024.12.08", quiz: "경제 뉴스 퀴즈", result: "정답" },
-    { date: "2024.12.07", quiz: "정치 뉴스 퀴즈", result: "정답" },
-    { date: "2024.12.06", quiz: "IT 뉴스 퀴즈", result: "오답" },
-  ];
+  // [임시] 뱃지 계산 - 목업 데이터
+  const myBadgeCodes: BadgeCode[] = useMemo(() => {
+    const badges: BadgeCode[] = ["MORNING", "PERFECT_SCORE"]; // 기본 뱃지
+    return badges;
+  }, []);
+
+  // [임시] 주간 활동 데이터 (최근 7일) - 목업 데이터
+  const weeklyActivity = useMemo(() => {
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    const today = new Date();
+
+    // 목업 데이터: 일부는 풀었고 일부는 안 푼 것으로 표시
+    const mockScores = [80, 100, 0, 90, 75, 100, 60];
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - (6 - index));
+      const dayIndex = targetDate.getDay();
+      const score = mockScores[index];
+
+      return {
+        day: days[dayIndex],
+        score: score,
+        solved: score > 0,
+      };
+    });
+  }, []);
+
+  // [임시] 최근 활동 데이터 - 목업 데이터
+  const recentActivity = useMemo(() => {
+    const today = new Date();
+    return [
+      {
+        date: new Date(today.getTime() - 0 * 24 * 60 * 60 * 1000)
+          .toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+          .replace(/\. /g, ".")
+          .replace(/\.$/, ""),
+        quiz: "오늘의 경제 뉴스 퀴즈",
+        result: "정답",
+      },
+      {
+        date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000)
+          .toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+          .replace(/\. /g, ".")
+          .replace(/\.$/, ""),
+        quiz: "어제의 정치 뉴스 퀴즈",
+        result: "오답",
+      },
+      {
+        date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000)
+          .toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+          .replace(/\. /g, ".")
+          .replace(/\.$/, ""),
+        quiz: "IT/과학 뉴스 퀴즈",
+        result: "정답",
+      },
+    ];
+  }, []);
 
   // --- 핸들러 함수들 ---
 
@@ -412,61 +488,47 @@ const MyPage = () => {
       <section className="mb-12">
         <h2 className="text-lg font-bold text-gray-900 mb-4">학습 리포트</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 점수 + 그래프 카드 */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+          {/* 점수 통계 카드 */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <MdOutlineTrendingUp className="text-blue-600" size={20} />
-                <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                  퀴즈 진행 상황
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
+                퀴즈 진행 상황
+              </span>
+            </div>
+            <div className="flex-1 flex flex-col justify-center -mt-2">
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-bold text-gray-900">
+                  {stats.correctCount * 10}
                 </span>
+                <span className="text-lg text-gray-500">점</span>
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-bold text-gray-900">
-                  {stats.totalScore}
+              <p className="text-gray-500 text-sm mt-4">
+                정답 퀴즈:{" "}
+                <span className="font-semibold text-gray-900">
+                  {stats.correctCount}개
                 </span>
-                <span className="text-xs text-gray-500">점 (누적)</span>
-              </div>
-              <p className="text-gray-500 text-xs mt-1">
-                총 해결한 퀴즈:{" "}
+                {" · "}푼 퀴즈:{" "}
                 <span className="font-semibold text-gray-900">
                   {stats.solvedCount}개
                 </span>
+                {" · "}
+                정답률:{" "}
+                <span className="font-semibold text-gray-900">
+                  {stats.solvedCount > 0
+                    ? Math.round((stats.correctCount / stats.solvedCount) * 100)
+                    : 0}
+                  %
+                </span>
               </p>
-            </div>
-            <div className="mt-6">
-              <p className="text-gray-400 text-[10px] mb-2 text-right">
-                최근 7일 정답률
-              </p>
-              <div className="flex justify-between items-end h-24 border-b border-gray-100 pb-1">
-                {weeklyActivity.map((day, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col items-center gap-1 group w-full mx-1"
-                  >
-                    <div className="relative w-full bg-gray-100 rounded-t-sm h-full flex items-end overflow-hidden">
-                      <div
-                        style={{ height: `${day.solved ? day.score : 0}%` }}
-                        className={clsx(
-                          "w-full transition-all duration-500",
-                          day.score === 100 ? "bg-blue-500" : "bg-blue-300",
-                          !day.solved && "h-0"
-                        )}
-                      />
-                    </div>
-                    <span className="text-[10px] text-gray-400 font-medium">
-                      {day.day}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
           {/* 뱃지 카드 */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-900 font-bold text-sm">보유 뱃지</span>
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
+                보유 뱃지
+              </span>
               <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
                 {myBadgeCodes.length} / {BADGE_MASTER_LIST.length}
               </span>

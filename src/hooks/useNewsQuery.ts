@@ -55,35 +55,54 @@ export const useCheckNewsExists = (url: string) => {
   });
 };
 
-// 6. 퀴즈 조회 (Quiz 타입 반환)
-export const useQuizById = (quizId: number) => {
+// 6. 퀴즈 전체 조회
+export const useAllQuizzes = () => {
   return useQuery({
-    queryKey: ['quiz', quizId],
-    queryFn: () => newsApi.getQuizById(quizId),
-    enabled: !!quizId,
+    queryKey: ['quiz', 'all'],
+    queryFn: () => newsApi.getAllQuizzes(),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
-// 7. 퀴즈 생성
-export const useCreateQuiz = () => {
+// 7. 퀴즈 조회 (Quiz 타입 반환)
+export const useQuizById = (id: number) => {
+  return useQuery({
+    queryKey: ['quiz', id],
+    queryFn: () => newsApi.getQuizById(id),
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// 7. 퀴즈 생성 (summaryId 기반)
+export const useGenerateQuiz = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: newsApi.createQuiz,
+    mutationFn: (summaryId: number) => newsApi.generateQuiz(summaryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quiz'] });
     },
   });
 };
 
-// 8. 퀴즈 답안 제출 (새 API)
+// 8. 퀴즈 결과 조회
+export const useQuizResult = (id: number) => {
+  return useQuery({
+    queryKey: ['quiz', 'result', id],
+    queryFn: () => newsApi.getQuizResult(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// 9. 퀴즈 답안 제출 (새 API)
 export const useSubmitQuizAnswer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (answerData: SubmitQuizAnswerRequest) =>
-      newsApi.submitQuizAnswer(answerData),
+    mutationFn: ({ id, answerData }: { id: number; answerData: SubmitQuizAnswerRequest }) =>
+      newsApi.submitQuizAnswer(id, answerData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quiz'] });
     },

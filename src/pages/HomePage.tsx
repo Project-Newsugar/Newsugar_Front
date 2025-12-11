@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useAllNews,
   useQuizById,
@@ -7,8 +7,6 @@ import {
 import NewsSummaryCard from "../components/home/NewsSummaryCard";
 import QuizQuestion from "../components/quiz/QuizQuestion";
 import QuizForm from "../components/quiz/QuizForm";
-import QuizResult from "../components/quiz/QuizResult";
-import QuizStatic from "../components/quiz/QuizStatic";
 import Modal from "../components/Modal";
 import { useNavigate } from "react-router-dom";
 import { getCategorySlug } from "../utils/getCategorySlug";
@@ -17,6 +15,9 @@ import { isLoggedInAtom, favoriteCategoriesAtom } from "../store/atoms";
 import { FaStar } from "react-icons/fa";
 import type { News } from "../types/news";
 import AdBanner from "../components/home/AdBanner";
+// [추가] localStorage 유틸과 키 import
+import { getLocalStorage } from "../utils/getLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/keys";
 
 export default function HomePage() {
   // 현재 시간대 계산 함수 (오전 6시 기준으로 하루가 시작됨)
@@ -67,13 +68,57 @@ export default function HomePage() {
   const submitAnswer = useSubmitQuizAnswer();
   const [isSolved, setIsSolved] = useState(false);
   const [favorites] = useAtom(favoriteCategoriesAtom);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<number[]>([]);
+  const [quizResults, setQuizResults] = useState<{
+    total: number;
+    correct: number;
+    results: boolean[];
+  } | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "correct" | "incorrect" | null;
   }>({ isOpen: false, type: null });
   const navigate = useNavigate();
-  // const [isLoggedIn] = useAtom(isLoggedInAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+
+  // localStorage 키: 퀴즈 완료 상태 저장
+  const QUIZ_STATE_KEY = `quiz_state_${quizId}`;
+
+  // [추가] 컴포넌트 마운트 시 토큰 확인하여 로그인 상태 설정
+  useEffect(() => {
+    const accessToken = getLocalStorage(LOCAL_STORAGE_KEY.accessToken).getItem();
+    setIsLoggedIn(!!accessToken);
+  }, [setIsLoggedIn]);
+
+  // 퀴즈 상태를 localStorage에서 복구
+  useEffect(() => {
+    const savedState = localStorage.getItem(QUIZ_STATE_KEY);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        setIsSolved(parsedState.isSolved);
+        setQuizResults(parsedState.quizResults);
+        setUserAnswers(parsedState.userAnswers);
+        setCurrentQuestionIndex(parsedState.currentQuestionIndex || 0);
+      } catch (error) {
+        console.error("Failed to parse saved quiz state:", error);
+      }
+    }
+  }, [QUIZ_STATE_KEY]);
+
+  // 퀴즈 상태를 localStorage에 저장
+  useEffect(() => {
+    if (isSolved && quizResults) {
+      const stateToSave = {
+        isSolved,
+        quizResults,
+        userAnswers,
+        currentQuestionIndex,
+      };
+      localStorage.setItem(QUIZ_STATE_KEY, JSON.stringify(stateToSave));
+    }
+  }, [isSolved, quizResults, userAnswers, currentQuestionIndex, QUIZ_STATE_KEY]);
 
   // 현재 시간대 확인
   const currentTimeSlot = getCurrentTimeSlot();
@@ -87,7 +132,12 @@ export default function HomePage() {
    */
   const handleTimeChange = (time: string) => {
     setSelectedTime(time);
-    setIsSolved(false); // 시간대 변경 시 퀴즈 풀이 상태 초기화
+    // 시간대 변경 시 상태는 초기화하지만 localStorage는 유지
+    // (새로운 quizId로 인해 자동으로 다른 localStorage 키를 사용함)
+    setIsSolved(false);
+    setCurrentQuestionIndex(0);
+    setUserAnswers([]);
+    setQuizResults(null);
   };
 
   /**
@@ -104,23 +154,44 @@ export default function HomePage() {
    * 정답 여부에 따라 모달을 표시하고 상태를 업데이트
    */
   const handleSubmit = async (answer: string, resetForm: () => void) => {
-    if (!quiz) return;
+    if (!quiz?.data?.questions) return;
+
+    // 사용자 입력은 1부터 시작하므로 0-based 인덱스로 변환
+    const answerIndex = parseInt(answer) - 1;
+    const newAnswers = [...userAnswers];
+    newAnswers[currentQuestionIndex] = answerIndex;
+    setUserAnswers(newAnswers);
+
+    // 마지막 문제가 아니면 다음 문제로
+    if (currentQuestionIndex < quiz.data.questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      resetForm();
+      return;
+    }
+
+    // 모든 문제를 풀었으면 답안 제출
     try {
-      // 새 API 형식에 맞게 변환
       const result = await submitAnswer.mutateAsync({
-        quiz_id: quiz.data.id,
-        user_id: 1, // TODO: 실제 로그인 사용자 ID 사용
-        user_answer: parseInt(answer), // string을 number로 변환
+        id: quiz.data.id,
+        answerData: {
+          userId: 1, // TODO: 실제 로그인 사용자 ID 사용
+          answers: newAnswers,
+        },
       });
 
-      // SubmitQuizAnswerResponse의 is_correct 확인
-      if (result.data.is_correct) {
+      // API 응답 구조 수정: response -> data
+      setQuizResults(result.data);
+
+      // API 응답의 results 배열을 사용하여 정답 여부 확인
+      // results는 현재 제출한 퀴즈의 각 문제별 정답 여부를 담고 있음
+      const allCorrect = result.data.results.every((isCorrect: boolean) => isCorrect === true);
+
+      if (allCorrect) {
         setModalState({ isOpen: true, type: "correct" });
-        setIsSolved(true);
       } else {
         setModalState({ isOpen: true, type: "incorrect" });
-        resetForm();
       }
+      setIsSolved(true);
     } catch (error) {
       console.error("Failed to submit answer:", error);
       alert("답안 제출 실패");
@@ -174,20 +245,6 @@ export default function HomePage() {
         type="alert"
       />
 
-      {/* 임시 로그인 토글 버튼 (개발용) */}
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          onClick={() => setIsLoggedIn(!isLoggedIn)}
-          className={`px-4 py-2 rounded-lg font-medium shadow-lg transition-colors ${
-            isLoggedIn
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-gray-600 text-white hover:bg-gray-700"
-          }`}
-        >
-          {isLoggedIn ? "🟢 로그인됨" : "⚪ 로그아웃됨"}
-        </button>
-      </div>
-
       {/* HERO SECTION */}
       <section className="text-center space-y-3">
         <h1 className="text-6xl font-bold text-gray-900">
@@ -223,9 +280,11 @@ export default function HomePage() {
                 <div className="flex justify-center items-center h-24">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              ) : quiz?.data ? (
+              ) : quiz?.data?.questions && quiz.data.questions.length > 0 ? (
                 <div className="space-y-4">
-                  <QuizQuestion question={quiz.data.question} />
+                  <QuizQuestion
+                    question={quiz.data.questions[currentQuestionIndex]?.text || quiz.data.questions[0].text}
+                  />
 
                   {/* 현재 시간대가 아닌 경우 정적으로 표시 */}
                   {!isCurrentTimeSlot ? (
@@ -238,22 +297,71 @@ export default function HomePage() {
                           정답과 해설만 확인할 수 있습니다.
                         </p>
                       </div>
-                      <QuizStatic
-                        correctAnswer={quiz.data.correct_answer}
-                        isRevealed={quiz.data.is_revealed}
-                      />
+                      {/* 모든 문제의 정답 표시 */}
+                      <div className="space-y-3">
+                        {quiz.data.questions.map((question, idx) => (
+                          <div key={idx} className="p-4 rounded-lg border bg-blue-50 border-blue-200">
+                            <p className="text-sm text-gray-600 mb-1">문제 {idx + 1} 정답</p>
+                            <p className="font-medium text-gray-900">
+                              {question.correctIndex + 1}번: {question.options[question.correctIndex]}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">{question.explanation}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : !isSolved ? (
-                    <QuizForm
-                      onSubmit={handleSubmit}
-                      isSubmitting={submitAnswer.isPending}
-                      isLoggedIn={isLoggedIn}
-                    />
+                    <div className="space-y-4">
+                      {/* 옵션 표시 */}
+                      <div className="space-y-2">
+                        {quiz.data.questions[currentQuestionIndex]?.options.map((option, idx) => (
+                          <div key={idx} className="text-sm text-gray-700 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            {idx + 1}. {option}
+                          </div>
+                        ))}
+                      </div>
+                      <QuizForm
+                        onSubmit={handleSubmit}
+                        isSubmitting={submitAnswer.isPending}
+                        isLoggedIn={isLoggedIn}
+                      />
+                    </div>
                   ) : (
-                    <QuizResult
-                      correctAnswer={quiz.data.correct_answer}
-                      isRevealed={quiz.data.is_revealed}
-                    />
+                    <div className="space-y-4">
+                      {/* 퀴즈 결과 표시 */}
+                      <div className="p-5 rounded-lg border bg-blue-50 border-blue-200">
+                        <p className="mb-2 font-medium text-blue-900">
+                          점수: {quizResults?.correct} / {quizResults?.total}
+                        </p>
+                      </div>
+                      {/* 각 문제별 결과 */}
+                      <div className="space-y-3">
+                        {quiz.data.questions.map((question, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-lg border ${
+                              quizResults?.results[idx]
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-red-50 border-red-200'
+                            }`}
+                          >
+                            <p className="text-sm text-gray-600 mb-1">
+                              문제 {idx + 1}: {quizResults?.results[idx] ? '✓ 정답' : '✗ 오답'}
+                            </p>
+                            <p className="font-medium text-gray-900">
+                              정답: {question.correctIndex + 1}번 - {question.options[question.correctIndex]}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">{question.explanation}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => navigate("/mypage")}
+                        className="w-full py-3 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        현재 총점수는? 마이페이지로 이동
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
