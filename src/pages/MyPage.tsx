@@ -1,7 +1,6 @@
 import {
   MdLogout,
   MdEdit,
-  MdOutlineTrendingUp,
   MdClose,
   MdCheck,
 } from "react-icons/md";
@@ -140,69 +139,62 @@ const MyPage = () => {
     return badges;
   }, []);
 
-  // [임시] 주간 활동 데이터 (최근 7일) - 목업 데이터
-  const weeklyActivity = useMemo(() => {
-    const days = ["일", "월", "화", "수", "목", "금", "토"];
-    const today = new Date();
 
-    // 목업 데이터: 일부는 풀었고 일부는 안 푼 것으로 표시
-    const mockScores = [80, 100, 0, 90, 75, 100, 60];
+  // 최근 활동 데이터 (localStorage 기반)
+  const [recentActivity, setRecentActivity] = useState<
+    {
+      date: string;
+      result: "정답" | "오답";
+    }[]
+  >([]);
 
-    return Array.from({ length: 7 }, (_, index) => {
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() - (6 - index));
-      const dayIndex = targetDate.getDay();
-      const score = mockScores[index];
+  // localStorage에서 퀴즈 히스토리 불러오기
+  useEffect(() => {
+    try {
+      const activities: { date: string; result: "정답" | "오답" }[] = [];
 
-      return {
-        day: days[dayIndex],
-        score: score,
-        solved: score > 0,
-      };
-    });
-  }, []);
+      // localStorage의 모든 키를 순회하면서 quiz_state_ 로 시작하는 항목 찾기
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("quiz_state_")) {
+          const stateStr = localStorage.getItem(key);
+          if (stateStr) {
+            try {
+              const state = JSON.parse(stateStr);
+              // isSolved가 true인 퀴즈만 포함
+              if (state.isSolved && state.quizResults) {
+                // 모든 문제를 맞췄는지 확인
+                const allCorrect = state.quizResults.results?.every((r: boolean) => r === true);
 
-  // [임시] 최근 활동 데이터 - 목업 데이터
-  const recentActivity = useMemo(() => {
-    const today = new Date();
-    return [
-      {
-        date: new Date(today.getTime() - 0 * 24 * 60 * 60 * 1000)
-          .toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          })
-          .replace(/\. /g, ".")
-          .replace(/\.$/, ""),
-        quiz: "오늘의 경제 뉴스 퀴즈",
-        result: "정답",
-      },
-      {
-        date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000)
-          .toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          })
-          .replace(/\. /g, ".")
-          .replace(/\.$/, ""),
-        quiz: "어제의 정치 뉴스 퀴즈",
-        result: "오답",
-      },
-      {
-        date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000)
-          .toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          })
-          .replace(/\. /g, ".")
-          .replace(/\.$/, ""),
-        quiz: "IT/과학 뉴스 퀴즈",
-        result: "정답",
-      },
-    ];
+                activities.push({
+                  date: new Date().toISOString(), // 실제 날짜는 저장되어 있지 않으므로 현재 시간 사용
+                  result: allCorrect ? "정답" : "오답",
+                });
+              }
+            } catch (e) {
+              // JSON 파싱 실패 시 무시
+              continue;
+            }
+          }
+        }
+      }
+
+      // 날짜 형식 변환
+      const formattedActivity = activities.map((item) => {
+        const dateObj = new Date(item.date);
+        const formattedDate = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+        return {
+          date: formattedDate,
+          result: item.result,
+        };
+      });
+
+      setRecentActivity(formattedActivity);
+    } catch (error) {
+      console.error("퀴즈 내역 불러오기 실패:", error);
+      setRecentActivity([]);
+    }
   }, []);
 
   // --- 핸들러 함수들 ---
@@ -589,7 +581,7 @@ const MyPage = () => {
         />
       </section>
 
-      {/* 4. 최근 활동 섹션 (기존 유지) */}
+      {/* 4. 최근 활동 섹션 */}
       <section className="mb-12">
         <h2 className="text-lg font-bold text-gray-900 mb-4">최근 활동</h2>
         <div className="space-y-3">
@@ -597,17 +589,12 @@ const MyPage = () => {
             recentActivity.map((activity, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-blue-400 transition-colors cursor-pointer"
+                className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-blue-400 transition-colors"
               >
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">
-                    {activity.quiz}
-                  </h4>
-                  <div className="flex gap-2 text-xs text-gray-500">
-                    <span>{activity.date}</span>
-                    <span>·</span>
-                    <span>퀴즈 참여</span>
-                  </div>
+                <div className="flex gap-2 text-sm text-gray-500">
+                  <span>{activity.date}</span>
+                  <span>·</span>
+                  <span>퀴즈 참여</span>
                 </div>
                 <span
                   className={clsx(

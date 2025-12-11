@@ -143,7 +143,12 @@ export const newsApi = {
         `/api/v1/quizzes/${id}`
       );
       // API 성공했지만 데이터가 없거나 유효하지 않은 경우 Mock 데이터 사용
-      if (!data || !data.data || !data.data.questions || data.data.questions.length === 0) {
+      if (
+        !data ||
+        !data.data ||
+        !data.data.questions ||
+        data.data.questions.length === 0
+      ) {
         console.warn(`퀴즈 ID ${id} 데이터가 비어있음, Mock 데이터 사용`);
         return MOCK_QUIZZES[id] || MOCK_QUIZZES[1];
       }
@@ -165,9 +170,9 @@ export const newsApi = {
       console.warn("API 호출 실패, Mock 데이터 사용:", error);
 
       // Mock: localStorage에서 누적 통계 가져오기
-      const total = parseInt(localStorage.getItem('quiz_total') || '0');
-      const correct = parseInt(localStorage.getItem('quiz_correct') || '0');
-      const results = JSON.parse(localStorage.getItem('quiz_results') || '[]');
+      const total = parseInt(localStorage.getItem("quiz_total") || "0");
+      const correct = parseInt(localStorage.getItem("quiz_correct") || "0");
+      const results = JSON.parse(localStorage.getItem("quiz_results") || "[]");
 
       return {
         success: true,
@@ -201,22 +206,21 @@ export const newsApi = {
 
       // 현재 퀴즈의 정답 여부 계산 (각 문제별)
       const currentResults = answerData.answers.map(
-        (answer, index) =>
-          answer === quiz.data.questions[index]?.correctIndex
+        (answer, index) => answer === quiz.data.questions[index]?.correctIndex
       );
       const currentCorrectCount = currentResults.filter(Boolean).length;
 
       // Mock: 누적 데이터 시뮬레이션 (localStorage에서 가져오기)
-      const prevTotal = parseInt(localStorage.getItem('quiz_total') || '0');
-      const prevCorrect = parseInt(localStorage.getItem('quiz_correct') || '0');
+      const prevTotal = parseInt(localStorage.getItem("quiz_total") || "0");
+      const prevCorrect = parseInt(localStorage.getItem("quiz_correct") || "0");
 
       // 새로운 누적 데이터 계산
       const newTotal = prevTotal + answerData.answers.length; // 푼 문제 수 누적
       const newCorrect = prevCorrect + currentCorrectCount; // 맞춘 문제 수 누적
 
       // localStorage에 저장
-      localStorage.setItem('quiz_total', newTotal.toString());
-      localStorage.setItem('quiz_correct', newCorrect.toString());
+      localStorage.setItem("quiz_total", newTotal.toString());
+      localStorage.setItem("quiz_correct", newCorrect.toString());
 
       return {
         success: true,
