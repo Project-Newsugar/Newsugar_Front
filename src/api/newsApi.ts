@@ -107,10 +107,15 @@ export const newsApi = {
   // ========== 퀴즈 API (API 명세 기준) ==========
 
   // 6. 퀴즈 전체 조회
-  getAllQuizzes: async (): Promise<GetAllQuizzesResponse> => {
+  getAllQuizzes: async (params?: {
+    scope?: "period";
+    from?: string;
+    to?: string;
+  }): Promise<GetAllQuizzesResponse> => {
     try {
       const { data } = await axiosInstance.get<GetAllQuizzesResponse>(
-        "/api/v1/quizzes"
+        "/api/v1/quizzes",
+        { params }
       );
       // API 성공했지만 데이터가 없는 경우 Mock 데이터 사용
       if (!data || !data.data || data.data.length === 0) {
@@ -169,9 +174,7 @@ export const newsApi = {
     } catch (error) {
       console.warn("API 호출 실패, Mock 데이터 사용:", error);
 
-      // Mock: localStorage에서 누적 통계 가져오기
-      const total = parseInt(localStorage.getItem("quiz_total") || "0");
-      const correct = parseInt(localStorage.getItem("quiz_correct") || "0");
+      // Mock: 기본값 반환
       const results = JSON.parse(localStorage.getItem("quiz_results") || "[]");
 
       return {
@@ -179,8 +182,8 @@ export const newsApi = {
         code: "200",
         message: "퀴즈 결과 조회 성공",
         data: {
-          total: total,
-          correct: correct,
+          total: 0,
+          correct: 0,
           results: results,
           userId: 1,
         },
@@ -210,25 +213,14 @@ export const newsApi = {
       );
       const currentCorrectCount = currentResults.filter(Boolean).length;
 
-      // Mock: 누적 데이터 시뮬레이션 (localStorage에서 가져오기)
-      const prevTotal = parseInt(localStorage.getItem("quiz_total") || "0");
-      const prevCorrect = parseInt(localStorage.getItem("quiz_correct") || "0");
-
-      // 새로운 누적 데이터 계산
-      const newTotal = prevTotal + answerData.answers.length; // 푼 문제 수 누적
-      const newCorrect = prevCorrect + currentCorrectCount; // 맞춘 문제 수 누적
-
-      // localStorage에 저장
-      localStorage.setItem("quiz_total", newTotal.toString());
-      localStorage.setItem("quiz_correct", newCorrect.toString());
-
+      // Mock: 현재 퀴즈 결과만 반환
       return {
         success: true,
         code: "200",
         message: "퀴즈 제출 성공",
         data: {
-          total: newTotal,
-          correct: newCorrect,
+          total: answerData.answers.length,
+          correct: currentCorrectCount,
           results: currentResults, // 현재 퀴즈의 각 문제별 정답 여부
           userId: answerData.userId,
         },

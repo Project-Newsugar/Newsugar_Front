@@ -70,6 +70,7 @@ const MyPage = () => {
     nickname: "멋쟁이사자",
     email: "test@example.com",
     phone: "010-1234-5678" as string | null,
+    score: 0,
   });
 
   // 유저 정보 불러오기
@@ -83,6 +84,7 @@ const MyPage = () => {
             nickname: response.data.nickname,
             email: response.data.email,
             phone: response.data.phone,
+            score: response.data.score,
           });
         }
       } catch (error: any) {
@@ -233,6 +235,7 @@ const MyPage = () => {
           nickname: response.data.nickname,
           email: response.data.email,
           phone: response.data.phone,
+          score: response.data.score,
         });
         setIsEditing(false);
         alert("프로필이 성공적으로 수정되었습니다.");
@@ -492,11 +495,11 @@ const MyPage = () => {
             <div className="flex-1 flex flex-col justify-center -mt-2">
               <div className="flex items-baseline gap-3">
                 <span className="text-5xl font-bold text-gray-900">
-                  {stats.correctCount * 10}
+                  {user.score}
                 </span>
                 <span className="text-lg text-gray-500">점</span>
               </div>
-              <p className="text-gray-500 text-sm mt-4">
+              {/* <p className="text-gray-500 text-sm mt-4">
                 정답 퀴즈:{" "}
                 <span className="font-semibold text-gray-900">
                   {stats.correctCount}개
@@ -513,7 +516,7 @@ const MyPage = () => {
                     : 0}
                   %
                 </span>
-              </p>
+              </p> */}
             </div>
           </div>
 

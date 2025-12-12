@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   useAllNews,
-  useLatestQuiz,
+  useQuizByTimeSlot,
   useSubmitQuizAnswer,
   useQuizResult,
 } from "../hooks/useNewsQuery";
@@ -17,6 +17,8 @@ import { FaStar } from "react-icons/fa";
 import type { News } from "../types/news";
 import AdBanner from "../components/home/AdBanner";
 import { useAuth } from "../hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { getMyProfile } from "../api/auth";
 
 export default function HomePage() {
   // 현재 시간대 계산 함수 (오전 6시 기준으로 하루가 시작됨)
@@ -52,15 +54,15 @@ export default function HomePage() {
     };
   }, [newsListData]);
 
-  // 최신 퀴즈 조회 (시간대와 무관하게 가장 최근에 생성된 퀴즈 사용)
-  const { data: quiz, isLoading: isQuizLoading } = useLatestQuiz();
+  // 선택한 시간대의 퀴즈 조회
+  const { data: quiz, isLoading: isQuizLoading } = useQuizByTimeSlot(selectedTime);
 
   // 퀴즈 ID 추출 (localStorage 키 등에서 사용)
   const quizId = quiz?.data?.id || 0;
   const submitAnswer = useSubmitQuizAnswer();
 
   // 퀴즈 결과 조회 (DB 기반 완료 여부 확인용)
-  const { data: quizResultData } = useQuizResult(quizId);
+  const { data: quizResultData, isSuccess: isQuizResultSuccess } = useQuizResult(quizId);
 
   const [isSolved, setIsSolved] = useState(false);
   const [favorites] = useAtom(favoriteCategoriesAtom);
@@ -77,6 +79,14 @@ export default function HomePage() {
   }>({ isOpen: false, type: null });
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
+
+  // 사용자 정보 조회 (로그인한 경우에만)
+  const { data: userProfile } = useQuery({
+    queryKey: ["user", "profile"],
+    queryFn: getMyProfile,
+    enabled: isLoggedIn, // 로그인한 경우에만 실행
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // localStorage 키: 퀴즈 완료 상태 저장 (시간대별로 구분) - 백업용
   const QUIZ_STATE_KEY = `quiz_state_${quizId}_${selectedTime}`;
@@ -106,6 +116,14 @@ export default function HomePage() {
     return isSameDate && isAfterQuizStart;
   };
 
+  // 퀴즈 변경 시 상태 초기화 (시간대 변경 시)
+  useEffect(() => {
+    setIsSolved(false);
+    setCurrentQuestionIndex(0);
+    setUserAnswers([]);
+    setQuizResults(null);
+  }, [quizId, selectedTime]);
+
   // DB 기반 퀴즈 완료 여부 확인 (API 응답이 있을 때)
   useEffect(() => {
     if (!quizResultData?.data || !quiz?.data) return;
@@ -115,31 +133,59 @@ export default function HomePage() {
       quiz.data.startAt
     );
 
+    console.log("🔍 Quiz completion check:", {
+      quizId: quiz.data.id,
+      isCompleted,
+      timestamp: quizResultData.timestamp,
+      startAt: quiz.data.startAt,
+      resultsLength: quizResultData.data.results.length,
+      results: quizResultData.data.results,
+    });
+
     if (isCompleted && quizResultData.data.results.length > 0) {
       // DB에서 가져온 결과로 상태 설정
+      console.log("✅ 퀴즈 완료 상태로 설정 (DB)");
       setIsSolved(true);
       setQuizResults({
         total: quizResultData.data.total,
         correct: quizResultData.data.correct,
         results: quizResultData.data.results,
       });
+    } else if (isCompleted && quizResultData.data.results.length === 0) {
+      // DB에 기록은 있지만 results 배열이 비어있으면 로컬스토리지 확인
+      console.log("⚠️ DB results 배열이 비어있음, 로컬스토리지 확인");
+      const savedState = localStorage.getItem(QUIZ_STATE_KEY);
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState);
+          console.log("✅ 퀴즈 완료 상태로 설정 (localStorage)");
+          setIsSolved(parsedState.isSolved);
+          setQuizResults(parsedState.quizResults);
+          setUserAnswers(parsedState.userAnswers);
+          setCurrentQuestionIndex(parsedState.currentQuestionIndex || 0);
+        } catch (error) {
+          console.error("Failed to parse saved quiz state:", error);
+        }
+      }
     } else {
       // 아직 풀지 않았으면 초기 상태로 설정
+      console.log("❌ 퀴즈 미완료 상태로 설정");
       setIsSolved(false);
       setQuizResults(null);
       setUserAnswers([]);
       setCurrentQuestionIndex(0);
     }
-  }, [quizResultData, quiz?.data]);
+  }, [quizResultData, quiz?.data, QUIZ_STATE_KEY]);
 
   // localStorage 백업 상태 복구 (API 실패 시 대체용)
   useEffect(() => {
-    if (quizResultData) return; // API 데이터가 있으면 localStorage 사용 안 함
+    if (isQuizResultSuccess && quizResultData) return; // API 성공 시 localStorage 사용 안 함
 
     const savedState = localStorage.getItem(QUIZ_STATE_KEY);
     if (savedState) {
       try {
         const parsedState = JSON.parse(savedState);
+        console.log("✅ API 실패, localStorage에서 복구");
         setIsSolved(parsedState.isSolved);
         setQuizResults(parsedState.quizResults);
         setUserAnswers(parsedState.userAnswers);
@@ -148,7 +194,7 @@ export default function HomePage() {
         console.error("Failed to parse saved quiz state:", error);
       }
     }
-  }, [QUIZ_STATE_KEY, quizResultData]);
+  }, [QUIZ_STATE_KEY, quizResultData, isQuizResultSuccess]);
 
   // 퀴즈 상태를 localStorage에 저장
   useEffect(() => {
@@ -169,15 +215,29 @@ export default function HomePage() {
     QUIZ_STATE_KEY,
   ]);
 
-  // 현재 시간대 확인
-  const currentTimeSlot = getCurrentTimeSlot();
+  // 선택한 시간대가 과거인지 확인
+  const isPastTimeSlot = useMemo(() => {
+    const hour = new Date().getHours();
 
-  // 선택한 시간대가 현재 시간대인지 확인
-  const isCurrentTimeSlot = selectedTime === currentTimeSlot;
+    // 현재 시간대별 비교
+    if (hour >= 0 && hour < 6) {
+      // 새벽 0~6시: 24시가 현재, 06/12/18시는 과거
+      return selectedTime === "06" || selectedTime === "12" || selectedTime === "18";
+    } else if (hour >= 6 && hour < 12) {
+      // 오전 6~12시: 06시가 현재, 12/18/24시는 미래
+      return false; // 모두 미래이거나 현재
+    } else if (hour >= 12 && hour < 18) {
+      // 오후 12~18시: 12시가 현재, 06시는 과거, 18/24시는 미래
+      return selectedTime === "06";
+    } else {
+      // 오후 18~24시: 18시가 현재, 06/12시는 과거, 24시는 미래
+      return selectedTime === "06" || selectedTime === "12";
+    }
+  }, [selectedTime]);
 
   /**
    * 시간대 변경 핸들러
-   * 선택한 시간대의 뉴스와 퀴즈를 불러옴
+   * 선택한 시간대의 퀴즈를 불러옴
    */
   const handleTimeChange = (time: string) => {
     setSelectedTime(time);
@@ -186,21 +246,6 @@ export default function HomePage() {
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setQuizResults(null);
-
-    // 변경된 시간대의 localStorage 상태 불러오기
-    const newQuizStateKey = `quiz_state_${quizId}_${time}`;
-    const savedState = localStorage.getItem(newQuizStateKey);
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        setIsSolved(parsedState.isSolved);
-        setQuizResults(parsedState.quizResults);
-        setUserAnswers(parsedState.userAnswers);
-        setCurrentQuestionIndex(parsedState.currentQuestionIndex || 0);
-      } catch (error) {
-        console.error("Failed to parse saved quiz state:", error);
-      }
-    }
   };
 
   /**
@@ -237,7 +282,7 @@ export default function HomePage() {
       const result = await submitAnswer.mutateAsync({
         id: quiz.data.id,
         answerData: {
-          userId: 1, // TODO: 실제 로그인 사용자 ID 사용
+          userId: userProfile?.data?.id || 1, // 로그인한 사용자 ID 사용, 없으면 1
           answers: newAnswers,
         },
       });
@@ -354,8 +399,8 @@ export default function HomePage() {
                     }
                   />
 
-                  {/* 현재 시간대가 아닌 경우 정적으로 표시 */}
-                  {!isCurrentTimeSlot ? (
+                  {/* 과거 시간대인 경우 정답만 표시 */}
+                  {isPastTimeSlot ? (
                     <div className="space-y-4">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-sm text-gray-600 mb-2">

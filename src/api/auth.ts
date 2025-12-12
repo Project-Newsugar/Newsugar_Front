@@ -82,6 +82,7 @@ export interface UpdateUserResponseData {
   email: string;
   nickname: string;
   phone: string;
+  score: number;
 }
 
 export const updateUserProfile = async (userData: UpdateUserRequest) => {
