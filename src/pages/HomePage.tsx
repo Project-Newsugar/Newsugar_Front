@@ -43,7 +43,7 @@ export default function HomePage() {
     // 각 뉴스의 summary를 합쳐서 전체 summary로 만들기
     const summaryText = newsListData.content
       .map((news, index) => `${index + 1}. ${news.title}\n${news.summary}`)
-      .join('\n\n');
+      .join("\n\n");
 
     return {
       summary: summaryText || "뉴스를 불러오는 중입니다...",
@@ -73,8 +73,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
 
-  // localStorage 키: 퀴즈 완료 상태 저장
-  const QUIZ_STATE_KEY = `quiz_state_${quizId}`;
+  // localStorage 키: 퀴즈 완료 상태 저장 (시간대별로 구분)
+  const QUIZ_STATE_KEY = `quiz_state_${quizId}_${selectedTime}`;
 
   // 퀴즈 상태를 localStorage에서 복구
   useEffect(() => {
@@ -103,7 +103,13 @@ export default function HomePage() {
       };
       localStorage.setItem(QUIZ_STATE_KEY, JSON.stringify(stateToSave));
     }
-  }, [isSolved, quizResults, userAnswers, currentQuestionIndex, QUIZ_STATE_KEY]);
+  }, [
+    isSolved,
+    quizResults,
+    userAnswers,
+    currentQuestionIndex,
+    QUIZ_STATE_KEY,
+  ]);
 
   // 현재 시간대 확인
   const currentTimeSlot = getCurrentTimeSlot();
@@ -117,12 +123,26 @@ export default function HomePage() {
    */
   const handleTimeChange = (time: string) => {
     setSelectedTime(time);
-    // 시간대 변경 시 상태는 초기화하지만 localStorage는 유지
-    // (새로운 quizId로 인해 자동으로 다른 localStorage 키를 사용함)
+    // 시간대 변경 시 상태 초기화
     setIsSolved(false);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setQuizResults(null);
+
+    // 변경된 시간대의 localStorage 상태 불러오기
+    const newQuizStateKey = `quiz_state_${quizId}_${time}`;
+    const savedState = localStorage.getItem(newQuizStateKey);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        setIsSolved(parsedState.isSolved);
+        setQuizResults(parsedState.quizResults);
+        setUserAnswers(parsedState.userAnswers);
+        setCurrentQuestionIndex(parsedState.currentQuestionIndex || 0);
+      } catch (error) {
+        console.error("Failed to parse saved quiz state:", error);
+      }
+    }
   };
 
   /**
@@ -169,7 +189,9 @@ export default function HomePage() {
 
       // API 응답의 results 배열을 사용하여 정답 여부 확인
       // results는 현재 제출한 퀴즈의 각 문제별 정답 여부를 담고 있음
-      const allCorrect = result.data.results.every((isCorrect: boolean) => isCorrect === true);
+      const allCorrect = result.data.results.every(
+        (isCorrect: boolean) => isCorrect === true
+      );
 
       if (allCorrect) {
         setModalState({ isOpen: true, type: "correct" });
@@ -225,7 +247,7 @@ export default function HomePage() {
         content={
           modalState.type === "correct"
             ? "축하합니다! 정답을 맞히셨습니다."
-            : "틀렸습니다. 다시 시도해보세요!"
+            : "틀렸습니다. 다음 퀴즈를 노려보세요"
         }
         type="alert"
       />
@@ -268,7 +290,10 @@ export default function HomePage() {
               ) : quiz?.data?.questions && quiz.data.questions.length > 0 ? (
                 <div className="space-y-4">
                   <QuizQuestion
-                    question={quiz.data.questions[currentQuestionIndex]?.text || quiz.data.questions[0].text}
+                    question={
+                      quiz.data.questions[currentQuestionIndex]?.text ||
+                      quiz.data.questions[0].text
+                    }
                   />
 
                   {/* 현재 시간대가 아닌 경우 정적으로 표시 */}
@@ -285,12 +310,20 @@ export default function HomePage() {
                       {/* 모든 문제의 정답 표시 */}
                       <div className="space-y-3">
                         {quiz.data.questions.map((question, idx) => (
-                          <div key={idx} className="p-4 rounded-lg border bg-blue-50 border-blue-200">
-                            <p className="text-sm text-gray-600 mb-1">문제 {idx + 1} 정답</p>
-                            <p className="font-medium text-gray-900">
-                              {question.correctIndex + 1}번: {question.options[question.correctIndex]}
+                          <div
+                            key={idx}
+                            className="p-4 rounded-lg border bg-blue-50 border-blue-200"
+                          >
+                            <p className="text-sm text-gray-600 mb-1">
+                              문제 {idx + 1} 정답
                             </p>
-                            <p className="text-sm text-gray-600 mt-2">{question.explanation}</p>
+                            <p className="font-medium text-gray-900">
+                              {question.correctIndex + 1}번:{" "}
+                              {question.options[question.correctIndex]}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              {question.explanation}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -299,11 +332,16 @@ export default function HomePage() {
                     <div className="space-y-4">
                       {/* 옵션 표시 */}
                       <div className="space-y-2">
-                        {quiz.data.questions[currentQuestionIndex]?.options.map((option, idx) => (
-                          <div key={idx} className="text-sm text-gray-700 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            {idx + 1}. {option}
-                          </div>
-                        ))}
+                        {quiz.data.questions[currentQuestionIndex]?.options.map(
+                          (option, idx) => (
+                            <div
+                              key={idx}
+                              className="text-sm text-gray-700 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              {idx + 1}. {option}
+                            </div>
+                          )
+                        )}
                       </div>
                       <QuizForm
                         onSubmit={handleSubmit}
@@ -326,17 +364,21 @@ export default function HomePage() {
                             key={idx}
                             className={`p-4 rounded-lg border ${
                               quizResults?.results[idx]
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-red-50 border-red-200'
+                                ? "bg-green-50 border-green-200"
+                                : "bg-red-50 border-red-200"
                             }`}
                           >
                             <p className="text-sm text-gray-600 mb-1">
-                              문제 {idx + 1}: {quizResults?.results[idx] ? '✓ 정답' : '✗ 오답'}
+                              문제 {idx + 1}:{" "}
+                              {quizResults?.results[idx] ? "✓ 정답" : "✗ 오답"}
                             </p>
                             <p className="font-medium text-gray-900">
-                              정답: {question.correctIndex + 1}번 - {question.options[question.correctIndex]}
+                              정답: {question.correctIndex + 1}번 -{" "}
+                              {question.options[question.correctIndex]}
                             </p>
-                            <p className="text-sm text-gray-600 mt-2">{question.explanation}</p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              {question.explanation}
+                            </p>
                           </div>
                         ))}
                       </div>
