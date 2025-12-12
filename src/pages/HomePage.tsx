@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   useAllNews,
-  useQuizById,
+  useLatestQuiz,
   useSubmitQuizAnswer,
 } from "../hooks/useNewsQuery";
 import NewsSummaryCard from "../components/home/NewsSummaryCard";
@@ -53,18 +53,11 @@ export default function HomePage() {
     };
   }, [newsListData]);
 
-  // 시간대를 기반으로 퀴즈 ID 계산 (임시: 시간대별로 다른 퀴즈 ID)
-  const quizId = useMemo(() => {
-    const timeToId: { [key: string]: number } = {
-      "06": 1,
-      "12": 2,
-      "18": 3,
-      "24": 4,
-    };
-    return timeToId[selectedTime] || 1;
-  }, [selectedTime]);
+  // 최신 퀴즈 조회 (시간대와 무관하게 가장 최근에 생성된 퀴즈 사용)
+  const { data: quiz, isLoading: isQuizLoading } = useLatestQuiz();
 
-  const { data: quiz, isLoading: isQuizLoading } = useQuizById(quizId);
+  // 퀴즈 ID 추출 (localStorage 키 등에서 사용)
+  const quizId = quiz?.data?.id || 0;
   const submitAnswer = useSubmitQuizAnswer();
   const [isSolved, setIsSolved] = useState(false);
   const [favorites] = useAtom(favoriteCategoriesAtom);

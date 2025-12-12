@@ -1,14 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { newsApi } from '../api/newsApi';
-import type { SubmitQuizAnswerRequest } from '../types/quiz';
-import type { CategoryType } from '../types/news';
-
-// ========== 새로운 API (명세서 기준) ==========
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { newsApi } from "../api/newsApi";
+import type { SubmitQuizAnswerRequest } from "../types/quiz";
+import type { CategoryType } from "../types/news";
 
 // 1. 뉴스 전체 조회 (페이지네이션)
 export const useAllNews = (page: number = 0, size: number = 20) => {
   return useQuery({
-    queryKey: ['news', 'all', page, size],
+    queryKey: ["news", "all", page, size],
     queryFn: () => newsApi.getAllNews(page, size),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -17,7 +15,7 @@ export const useAllNews = (page: number = 0, size: number = 20) => {
 // 2. 카테고리별 뉴스 조회
 export const useNewsByCategory = (category: CategoryType) => {
   return useQuery({
-    queryKey: ['news', 'category', category],
+    queryKey: ["news", "category", category],
     queryFn: () => newsApi.getNewsByCategory(category),
     enabled: !!category,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -27,7 +25,7 @@ export const useNewsByCategory = (category: CategoryType) => {
 // 3. 단일 뉴스 조회
 export const useNewsById = (newsId: number) => {
   return useQuery({
-    queryKey: ['news', newsId],
+    queryKey: ["news", newsId],
     queryFn: () => newsApi.getNewsById(newsId),
     enabled: !!newsId,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -41,7 +39,7 @@ export const useCreateNews = () => {
   return useMutation({
     mutationFn: newsApi.createNews,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['news'] });
+      queryClient.invalidateQueries({ queryKey: ["news"] });
     },
   });
 };
@@ -49,7 +47,7 @@ export const useCreateNews = () => {
 // 5. URL 중복 확인
 export const useCheckNewsExists = (url: string) => {
   return useQuery({
-    queryKey: ['news', 'exists', url],
+    queryKey: ["news", "exists", url],
     queryFn: () => newsApi.checkNewsExists(url),
     enabled: !!url,
   });
@@ -58,8 +56,32 @@ export const useCheckNewsExists = (url: string) => {
 // 6. 퀴즈 전체 조회
 export const useAllQuizzes = () => {
   return useQuery({
-    queryKey: ['quiz', 'all'],
+    queryKey: ["quiz", "all"],
     queryFn: () => newsApi.getAllQuizzes(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// 6-1. 최신 퀴즈 조회 (startAt 기준으로 가장 최근 퀴즈)
+export const useLatestQuiz = () => {
+  return useQuery({
+    queryKey: ["quiz", "latest"],
+    queryFn: async () => {
+      const response = await newsApi.getAllQuizzes();
+      if (!response.data || response.data.length === 0) {
+        throw new Error("퀴즈가 없습니다");
+      }
+
+      // startAt 기준으로 내림차순 정렬하여 가장 최신 퀴즈 반환
+      const sortedQuizzes = [...response.data].sort((a, b) =>
+        new Date(b.startAt).getTime() - new Date(a.startAt).getTime()
+      );
+
+      return {
+        ...response,
+        data: sortedQuizzes[0], // 가장 최신 퀴즈
+      };
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
@@ -67,7 +89,7 @@ export const useAllQuizzes = () => {
 // 7. 퀴즈 조회 (Quiz 타입 반환)
 export const useQuizById = (id: number) => {
   return useQuery({
-    queryKey: ['quiz', id],
+    queryKey: ["quiz", id],
     queryFn: () => newsApi.getQuizById(id),
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -81,7 +103,7 @@ export const useGenerateQuiz = () => {
   return useMutation({
     mutationFn: (summaryId: number) => newsApi.generateQuiz(summaryId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz'] });
+      queryClient.invalidateQueries({ queryKey: ["quiz"] });
     },
   });
 };
@@ -89,7 +111,7 @@ export const useGenerateQuiz = () => {
 // 8. 퀴즈 결과 조회
 export const useQuizResult = (id: number) => {
   return useQuery({
-    queryKey: ['quiz', 'result', id],
+    queryKey: ["quiz", "result", id],
     queryFn: () => newsApi.getQuizResult(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -101,10 +123,15 @@ export const useSubmitQuizAnswer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, answerData }: { id: number; answerData: SubmitQuizAnswerRequest }) =>
-      newsApi.submitQuizAnswer(id, answerData),
+    mutationFn: ({
+      id,
+      answerData,
+    }: {
+      id: number;
+      answerData: SubmitQuizAnswerRequest;
+    }) => newsApi.submitQuizAnswer(id, answerData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz'] });
+      queryClient.invalidateQueries({ queryKey: ["quiz"] });
     },
   });
 };
