@@ -11,13 +11,11 @@ import Modal from "../components/Modal";
 import { useNavigate } from "react-router-dom";
 import { getCategorySlug } from "../utils/getCategorySlug";
 import { useAtom } from "jotai";
-import { isLoggedInAtom, favoriteCategoriesAtom } from "../store/atoms";
+import { favoriteCategoriesAtom } from "../store/atoms";
 import { FaStar } from "react-icons/fa";
 import type { News } from "../types/news";
 import AdBanner from "../components/home/AdBanner";
-// [추가] localStorage 유틸과 키 import
-import { getLocalStorage } from "../utils/getLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/keys";
+import { useAuth } from "../hooks/useAuth";
 
 export default function HomePage() {
   // 현재 시간대 계산 함수 (오전 6시 기준으로 하루가 시작됨)
@@ -73,16 +71,10 @@ export default function HomePage() {
     type: "correct" | "incorrect" | null;
   }>({ isOpen: false, type: null });
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+  const { isLoggedIn } = useAuth();
 
   // localStorage 키: 퀴즈 완료 상태 저장
   const QUIZ_STATE_KEY = `quiz_state_${quizId}`;
-
-  // [추가] 컴포넌트 마운트 시 토큰 확인하여 로그인 상태 설정
-  useEffect(() => {
-    const accessToken = getLocalStorage(LOCAL_STORAGE_KEY.accessToken).getItem();
-    setIsLoggedIn(!!accessToken);
-  }, [setIsLoggedIn]);
 
   // 퀴즈 상태를 localStorage에서 복구
   useEffect(() => {

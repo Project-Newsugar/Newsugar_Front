@@ -20,6 +20,7 @@ import { favoriteCategoriesAtom } from "../store/atoms";
 import { useAddCategory, useDeleteCategory } from "../hooks/useCategoryQuery";
 import { updateUserProfile, getMyProfile } from "../api/auth";
 import { useQuizResult } from "../hooks/useNewsQuery";
+import { useAuth } from "../hooks/useAuth";
 
 // 1. 뱃지 마스터 데이터
 const BADGE_MASTER_LIST = [
@@ -50,6 +51,7 @@ const CATEGORY_ID_MAP: Record<string, number> = {
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // [추가] 컴포넌트 마운트 시 토큰 확인
   useEffect(() => {
@@ -288,8 +290,8 @@ const MyPage = () => {
 
   // 2. 모달에서 '예' 클릭 시 실행될 실제 로그아웃 로직
   const handleConfirmLogout = () => {
-    console.log("로그아웃 처리됨");
-    // TODO: 토큰 삭제 등 로그아웃 처리 로직 추가
+    // useAuth의 logout 함수로 토큰 삭제 및 로그인 상태 해제
+    logout();
 
     // 모달 닫고 홈페이지로 이동
     setShowLogoutModal(false);
